@@ -1,14 +1,47 @@
----
-- name: Deploy
-  hosts: [localhost]
-  gather_facts: false
-  vars:
-    ansible_python_interpreter: /usr/bin/python2
-    application: nginxblue
-  tasks:
-    - name: create instances
-      include_role: 
-        name: create_instance
-    - name: setup DNS
-      include_role:
-        name: route53
+- name: Create the ELB only listening over port 80
+  ec2_elb_lb:
+    name: "{{ application }}-load-balancer"
+    state: present
+    region: us-west-2
+    zones:
+      - us-west-2a
+      - us-west-2b
+    listeners:
+      - protocol: http
+        load_balancer_port: 80
+        instance_port: 80
+  register: elb
+
+- name: Create EC2 instances
+  ec2:
+    key_name: Jenkins
+    instance_type: t2.nano
+    image: ami-003634241a8fcdec0
+    user_data: "{{ lookup('file', 'user_data.sh') }}"
+    region: us-west-2
+    group_id:
+      - sg-0a21a53aedbe6c9fe
+    wait: yes
+    instance_tags:
+      Name: web_server
+      application: "{{ application }}"
+    exact_count: 2
+    count_tag:
+      application: "{{ application }}"
+  register: ec2_instances
+
+- name: Wait for servers to come online
+  wait_for:
+    host: "{{ item.public_ip }}"
+    port: 80
+    timeout: 180
+  with_items: "{{ ec2_instances.tagged_instances }}"
+  ignore_errors: True
+
+- name: Add each EC2 instance to the ELB
+  ec2_elb:
+    state: present
+    ec2_elbs: "{{ ELBNAME }}"
+    region: "{{ item.region }}"
+    instance_id: "{{ item.id }}"
+  with_items: "{{ ec2_instances.tagged_instances }}"
