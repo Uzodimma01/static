@@ -1,6 +1,6 @@
 - name: Create the ELB only listening over port 80
   ec2_elb_lb:
-    name: "{{ ELBNAME }}"
+    name: "{{ application }}-load-balancer"
     state: present
     region: us-west-2
     zones:
@@ -17,7 +17,7 @@
     key_name: Jenkins
     instance_type: t2.nano
     image: ami-003634241a8fcdec0
-    user_data: "{{ USERDATA }}"
+    user_data: "{{ lookup('file', 'user_data.sh') }}"
     region: us-west-2
     group_id:
       - sg-0a21a53aedbe6c9fe
