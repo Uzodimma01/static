@@ -1,4 +1,4 @@
-- name: Create the ELB only listening over port 80
+- name: Ansible test deploy
   ec2_elb_lb:
     name: "{{ application }}-load-balancer"
     state: present
