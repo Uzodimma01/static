@@ -1,4 +1,4 @@
-- name: Ansible test deploy
+- name: "Ansible test deploy"
   ec2_elb_lb:
     name: "{{ application }}-load-balancer"
     state: present
